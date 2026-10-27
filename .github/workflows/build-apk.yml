@@ -24,25 +24,35 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Setup Android SDK (runner built-in)
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          # Accept all licenses non-interactively
+          yes | sdkmanager --licenses >/dev/null || true
+          # Install only what we need (no obsolete "tools" package)
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" || \
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          echo "sdk.dir=$ANDROID_HOME" > local.properties || true
 
-      - name: Install dependencies
+      - name: Install JS dependencies
         run: npm install
 
-      - name: Prebuild native Android project
+      - name: Expo prebuild (generate android/)
         run: npx expo prebuild --platform android --no-install --non-interactive
 
       - name: Build Release APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: pokke-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/release/**/*.apk
           if-no-files-found: warn
           retention-days: 14
