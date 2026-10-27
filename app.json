@@ -17,7 +17,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "app.pokke.music",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -49,7 +51,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Pocket necesita tu ubicación para mostrar amigos cercanos y rachas de escucha en el mapa (solo si activas la función experimental)."
+          "locationAlwaysAndWhenInUsePermission": "Pokke necesita tu ubicaci\u00f3n para mostrar amigos cercanos y rachas de escucha en el mapa (solo si activas la funci\u00f3n experimental)."
         }
       ],
       [
@@ -57,10 +59,15 @@
         {
           "sounds": [
             "./assets/sounds/bubble-pop.mp3",
-            "./assets/sounds/chime.mp3",
             "./assets/sounds/marimba.mp3",
             "./assets/sounds/twinkle.mp3",
-            "./assets/sounds/out-of-nowhere.mp3"
+            "./assets/sounds/joyous-chime.mp3",
+            "./assets/sounds/message.mp3",
+            "./assets/sounds/out-of-nowhere.mp3",
+            "./assets/sounds/bubble-pop-alt.mp3",
+            "./assets/sounds/marimba-bloop.mp3",
+            "./assets/sounds/joyous-chime-full.mp3",
+            "./assets/sounds/twinkle-alert.mp3"
           ]
         }
       ]
