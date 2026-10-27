@@ -32,13 +32,11 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME"
           ls "$ANDROID_HOME/platforms" || true
           ls "$ANDROID_HOME/build-tools" || true
-          # Accept licenses (ignore failures)
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
-          # Point Gradle at the SDK
           echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Install JS dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Expo prebuild
         run: npx expo prebuild --platform android --no-install --non-interactive
