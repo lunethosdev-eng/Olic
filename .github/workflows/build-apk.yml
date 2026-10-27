@@ -30,8 +30,6 @@ jobs:
       - name: Prepare Android SDK
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$ANDROID_HOME/platforms" || true
-          ls "$ANDROID_HOME/build-tools" || true
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
           echo "sdk.dir=$ANDROID_HOME" > local.properties
 
@@ -40,6 +38,21 @@ jobs:
 
       - name: Expo prebuild
         run: npx expo prebuild --platform android --no-install --non-interactive
+
+      - name: Force New Architecture (Reanimated 4)
+        run: |
+          PROP=android/gradle.properties
+          if [ -f "$PROP" ]; then
+            sed -i 's/newArchEnabled=false/newArchEnabled=true/g' "$PROP" || true
+            grep -q 'newArchEnabled=' "$PROP" || echo 'newArchEnabled=true' >> "$PROP"
+            sed -i 's/hermesEnabled=false/hermesEnabled=true/g' "$PROP" || true
+            grep -q 'hermesEnabled=' "$PROP" || echo 'hermesEnabled=true' >> "$PROP"
+            echo "--- gradle.properties ---"
+            cat "$PROP"
+          else
+            echo "gradle.properties missing after prebuild"
+            exit 1
+          fi
 
       - name: Build Release APK
         working-directory: android
