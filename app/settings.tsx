@@ -1,170 +1,98 @@
-import { View, Text, StyleSheet, Switch, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Switch, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { colors, spacing, typography, radius } from '@/theme';
-import { GlassView } from '@/components/GlassView';
-import { useSettingsStore, ExperimentalFeatures } from '@/stores/settings';
-
-const EXPERIMENTAL_ITEMS: {
-  key: keyof ExperimentalFeatures;
-  title: string;
-  description: string;
-}[] = [
-  {
-    key: 'liquidGlass',
-    title: 'Liquid Glass',
-    description: 'Efecto de vidrio real (blur + highlights). Puede tener bugs.',
-  },
-  {
-    key: 'listenTogether',
-    title: 'Listen Together',
-    description: 'Escucha sincronizada con amigos + mini chat.',
-  },
-  {
-    key: 'chats',
-    title: 'Chats',
-    description: 'Chats individuales, reacciones, fondos y burbujas custom. Añade tab al nav.',
-  },
-  {
-    key: 'stories',
-    title: 'Stories',
-    description: 'Stories con editor, música, stickers y anillo en el avatar.',
-  },
-  {
-    key: 'map',
-    title: 'Mapa',
-    description: 'Mapa 3D con ubicación de amigos, rachas y reacciones.',
-  },
-  {
-    key: 'animatedCoversDefault',
-    title: 'Covers animados por defecto',
-    description: 'Si la canción tiene cover animado, usarlo automáticamente.',
-  },
-];
+import { useAuth } from '@/stores/auth';
+import { useSettings } from '@/stores/settings';
 
 export default function SettingsScreen() {
-  const { experimental, setExperimental, autoFocusSearch, setAutoFocusSearch } =
-    useSettingsStore();
+  const user = useAuth((s) => s.user);
+  const logout = useAuth((s) => s.logout);
+  const settings = useSettings();
+
+  const isStaff = user?.badge === 'owner' || user?.badge === 'admin';
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
+    <SafeAreaView style={s.root} edges={['top']}>
+      <View style={s.header}>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.back}>← Atrás</Text>
+          <Text style={s.back}>←</Text>
         </Pressable>
-        <Text style={styles.title}>Ajustes</Text>
+        <Text style={s.title}>Ajustes</Text>
       </View>
-
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.section}>General</Text>
-        <GlassView style={styles.group}>
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <Text style={styles.itemTitle}>Auto-focus en Search</Text>
-              <Text style={styles.itemDesc}>
-                Al abrir Search, el teclado aparece automáticamente.
-              </Text>
-            </View>
-            <Switch
-              value={autoFocusSearch}
-              onValueChange={setAutoFocusSearch}
-              trackColor={{ false: '#333', true: colors.primaryMuted }}
-              thumbColor={autoFocusSearch ? colors.primary : '#888'}
-            />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }}>
+        {user && (
+          <View style={s.card}>
+            <Text style={s.cardTitle}>{user.displayName || user.username}</Text>
+            <Text style={s.muted}>@{user.username} · {user.badge || 'user'}</Text>
           </View>
-        </GlassView>
+        )}
 
-        <Text style={styles.section}>Funciones experimentales</Text>
-        <Text style={styles.sectionHint}>
-          Pueden tener bugs. Actívalas bajo tu propio riesgo.
-        </Text>
+        <Text style={s.section}>Cuenta</Text>
+        <Pressable style={s.row} onPress={() => router.push('/link-device')}>
+          <Text style={s.rowText}>Vincular dispositivo</Text>
+          <Text style={s.chev}>›</Text>
+        </Pressable>
+        <Pressable style={s.row} onPress={() => router.push('/support')}>
+          <Text style={s.rowText}>Soporte / Feedback</Text>
+          <Text style={s.chev}>›</Text>
+        </Pressable>
 
-        <GlassView style={styles.group}>
-          {EXPERIMENTAL_ITEMS.map((item, idx) => (
-            <View
-              key={item.key}
-              style={[
-                styles.row,
-                idx < EXPERIMENTAL_ITEMS.length - 1 && styles.rowBorder,
-              ]}
-            >
-              <View style={styles.rowText}>
-                <Text style={styles.itemTitle}>{item.title}</Text>
-                <Text style={styles.itemDesc}>{item.description}</Text>
-              </View>
-              <Switch
-                value={experimental[item.key]}
-                onValueChange={(v) => setExperimental(item.key, v)}
-                trackColor={{ false: '#333', true: colors.primaryMuted }}
-                thumbColor={experimental[item.key] ? colors.primary : '#888'}
-              />
-            </View>
-          ))}
-        </GlassView>
+        {isStaff && (
+          <>
+            <Text style={s.section}>Admin</Text>
+            <Pressable style={[s.row, s.rowAdmin]} onPress={() => router.push('/admin')}>
+              <Text style={[s.rowText, { color: '#fff' }]}>Admin Panel</Text>
+              <Text style={s.chev}>›</Text>
+            </Pressable>
+          </>
+        )}
+
+        <Text style={s.section}>Experimental</Text>
+        <View style={s.row}>
+          <Text style={s.rowText}>Liquid Glass</Text>
+          <Switch
+            value={!!settings.liquidGlass}
+            onValueChange={(v) => settings.set?.({ liquidGlass: v })}
+            trackColor={{ true: '#fff', false: '#333' }}
+          />
+        </View>
+        <View style={s.row}>
+          <Text style={s.rowText}>Cover animado auto</Text>
+          <Switch
+            value={!!settings.autoAnimatedCover}
+            onValueChange={(v) => settings.set?.({ autoAnimatedCover: v })}
+            trackColor={{ true: '#fff', false: '#333' }}
+          />
+        </View>
+
+        <Pressable
+          style={[s.row, { marginTop: 24 }]}
+          onPress={async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          }}
+        >
+          <Text style={[s.rowText, { color: '#ff6b6b' }]}>Cerrar sesión</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    gap: spacing.sm,
-  },
-  back: {
-    ...typography.bodyMedium,
-    color: colors.textSecondary,
-  },
-  title: {
-    ...typography.displaySmall,
-    color: colors.textPrimary,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingBottom: 80,
-    gap: spacing.md,
-  },
-  section: {
-    ...typography.titleSmall,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  sectionHint: {
-    ...typography.bodySmall,
-    color: colors.textTertiary,
-    marginBottom: spacing.sm,
-  },
-  group: {
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-  },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#000' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
+  back: { color: '#fff', fontSize: 24, width: 32 },
+  title: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  card: { backgroundColor: '#141414', borderRadius: 14, padding: 16, marginBottom: 16 },
+  cardTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  muted: { color: '#888', marginTop: 4 },
+  section: { color: '#666', fontSize: 13, fontWeight: '600', marginTop: 12, marginBottom: 8, textTransform: 'uppercase' },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.lg,
-    gap: spacing.md,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#141414', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 8,
   },
-  rowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
-  },
-  rowText: {
-    flex: 1,
-    gap: 4,
-  },
-  itemTitle: {
-    ...typography.titleMedium,
-    color: colors.textPrimary,
-  },
-  itemDesc: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-  },
+  rowAdmin: { borderWidth: 1, borderColor: '#333' },
+  rowText: { color: '#eee', fontSize: 15 },
+  chev: { color: '#555', fontSize: 22 },
 });
