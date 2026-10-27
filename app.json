@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "pokke",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -47,7 +47,6 @@
     },
     "plugins": [
       "expo-router",
-      "expo-av",
       [
         "expo-location",
         {
