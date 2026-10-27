@@ -3,6 +3,7 @@ name: Build Android APK
 on:
   push:
     branches: [main, master]
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -16,32 +17,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - name: Setup Expo
-        uses: expo/expo-github-action@v8
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          expo-version: latest
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Build APK (preview)
+      - name: Prebuild native Android project
+        run: npx expo prebuild --platform android --no-install --non-interactive
+
+      - name: Build Release APK
+        working-directory: android
         run: |
-          npx eas-cli build --platform android --profile preview --non-interactive
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
 
-      # Alternative local-style build with expo prebuild + gradle (no EAS needed)
-      # Uncomment if you prefer classic APK without Expo account:
-      # - name: Prebuild + Gradle APK
-      #   run: |
-      #     npx expo prebuild --platform android --no-install
-      #     cd android && ./gradlew assembleRelease
-      # - name: Upload APK
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: pokke-apk
-      #     path: android/app/build/outputs/apk/release/*.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pokke-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
+          retention-days: 14
