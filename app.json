@@ -58,16 +58,16 @@
         "expo-notifications",
         {
           "sounds": [
-            "./assets/sounds/bubble-pop.mp3",
+            "./assets/sounds/bubble_pop.mp3",
             "./assets/sounds/marimba.mp3",
             "./assets/sounds/twinkle.mp3",
-            "./assets/sounds/joyous-chime.mp3",
+            "./assets/sounds/joyous_chime.mp3",
             "./assets/sounds/message.mp3",
-            "./assets/sounds/out-of-nowhere.mp3",
-            "./assets/sounds/bubble-pop-alt.mp3",
-            "./assets/sounds/marimba-bloop.mp3",
-            "./assets/sounds/joyous-chime-full.mp3",
-            "./assets/sounds/twinkle-alert.mp3"
+            "./assets/sounds/out_of_nowhere.mp3",
+            "./assets/sounds/bubble_pop_alt.mp3",
+            "./assets/sounds/marimba_bloop.mp3",
+            "./assets/sounds/joyous_chime_full.mp3",
+            "./assets/sounds/twinkle_alert.mp3"
           ]
         }
       ]
