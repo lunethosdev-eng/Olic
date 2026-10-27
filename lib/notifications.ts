@@ -1,13 +1,12 @@
 import { Audio } from 'expo-av';
-import { Platform } from 'react-native';
 
 const SOUNDS = {
-  bubble: require('@/assets/sounds/bubble-pop.mp3'),
-  marimba: require('@/assets/sounds/marimba.mp3'),
-  twinkle: require('@/assets/sounds/twinkle.mp3'),
-  joyous: require('@/assets/sounds/joyous-chime.mp3'),
-  message: require('@/assets/sounds/message.mp3'),
-  outOfNowhere: require('@/assets/sounds/out-of-nowhere.mp3'),
+  bubble: require('../assets/sounds/bubble_pop.mp3'),
+  marimba: require('../assets/sounds/marimba.mp3'),
+  twinkle: require('../assets/sounds/twinkle.mp3'),
+  joyous: require('../assets/sounds/joyous_chime.mp3'),
+  message: require('../assets/sounds/message.mp3'),
+  outOfNowhere: require('../assets/sounds/out_of_nowhere.mp3'),
 } as const;
 
 export type NotifSound = keyof typeof SOUNDS;
