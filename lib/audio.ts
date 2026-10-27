@@ -1,92 +1,66 @@
-import { Audio, AVPlaybackStatus, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
-import * as Notifications from 'expo-notifications';
+/**
+ * Audio playback wrapper.
+ * Uses expo-av when available; never crashes the app if native module fails.
+ */
 import { Platform } from 'react-native';
-import type { Track } from '@/stores/player';
 
-let sound: Audio.Sound | null = null;
-let currentTrackId: string | null = null;
+type SoundLike = {
+  unloadAsync: () => Promise<void>;
+  playAsync: () => Promise<void>;
+  pauseAsync: () => Promise<void>;
+  stopAsync: () => Promise<void>;
+  setPositionAsync: (ms: number) => Promise<void>;
+  getStatusAsync: () => Promise<any>;
+  setOnPlaybackStatusUpdate: (cb: (s: any) => void) => void;
+};
 
-export async function setupAudio() {
-  await Audio.setAudioModeAsync({
-    allowsRecordingIOS: false,
-    staysActiveInBackground: true,
-    interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-    playsInSilentModeIOS: true,
-    shouldDuckAndroid: true,
-    interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-    playThroughEarpieceAndroid: false,
-  });
+let AudioMod: any = null;
+let loadError: string | null = null;
 
-  if (Platform.OS !== 'web') {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: false,
-        shouldSetBadge: false,
-      }),
+async function ensureAudio() {
+  if (AudioMod) return AudioMod;
+  if (loadError) return null;
+  try {
+    AudioMod = await import('expo-av');
+    await AudioMod.Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
     });
+    return AudioMod;
+  } catch (e: any) {
+    loadError = String(e?.message || e);
+    console.warn('[Pokke audio] native module unavailable:', loadError);
+    return null;
   }
 }
 
-export async function loadAndPlay(
-  track: Track,
-  onStatus?: (status: AVPlaybackStatus) => void
-) {
+export async function createSound(
+  uri: string,
+  onStatus?: (s: any) => void
+): Promise<SoundLike | null> {
+  const mod = await ensureAudio();
+  if (!mod) return null;
   try {
-    if (sound) {
-      await sound.unloadAsync();
-      sound = null;
-    }
-
-    const { sound: newSound } = await Audio.Sound.createAsync(
-      { uri: track.audio_url },
-      { shouldPlay: true, progressUpdateIntervalMillis: 250 },
+    const { sound } = await mod.Audio.Sound.createAsync(
+      { uri },
+      { shouldPlay: false, progressUpdateIntervalMillis: 250 },
       onStatus
     );
-    sound = newSound;
-    currentTrackId = track.id;
-
-    // Media notification (Android / iOS)
-    if (Platform.OS !== 'web') {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: track.title,
-          body: track.artist,
-          data: { trackId: track.id },
-          sticky: true,
-          priority: Notifications.AndroidNotificationPriority.LOW,
-        },
-        trigger: null,
-      });
-    }
-
-    return newSound;
+    return sound;
   } catch (e) {
-    console.warn('Audio load error', e);
-    throw e;
+    console.warn('[Pokke audio] createSound failed', e);
+    return null;
   }
 }
 
-export async function pause() {
-  if (sound) await sound.pauseAsync();
-}
-
-export async function play() {
-  if (sound) await sound.playAsync();
-}
-
-export async function seekTo(seconds: number) {
-  if (sound) await sound.setPositionAsync(seconds * 1000);
-}
-
-export async function unload() {
-  if (sound) {
-    await sound.unloadAsync();
-    sound = null;
-    currentTrackId = null;
-  }
-}
-
-export function getCurrentSound() {
+export async function playUri(uri: string): Promise<SoundLike | null> {
+  const sound = await createSound(uri);
+  if (sound) await sound.playAsync().catch(() => {});
   return sound;
+}
+
+export function audioAvailable(): boolean {
+  return loadError === null;
 }
