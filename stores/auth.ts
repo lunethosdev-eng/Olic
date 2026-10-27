@@ -1,75 +1,110 @@
 import { create } from 'zustand';
-import { kokoro, type Profile } from '@/lib/supabase';
-import type { Session, User } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type AuthState = {
-  session: Session | null;
-  user: User | null;
-  profile: Profile | null;
-  loading: boolean;
-  init: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
-  signUp: (email: string, password: string, username: string) => Promise<{ error?: string }>;
-  signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+export type Badge = 'owner' | 'admin' | 'exclusive' | 'verified' | null;
+
+export type Profile = {
+  id: string;
+  email: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+  badge: Badge;
+  likedArtists: string[];
+  pinRequired?: boolean;
 };
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  session: null,
+type AuthState = {
+  user: Profile | null;
+  hydrated: boolean;
+  login: (email: string, password: string, pin?: string) => Promise<{ ok: boolean; error?: string }>;
+  register: (data: { email: string; password: string; username: string }) => Promise<{ ok: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  hydrate: () => Promise<void>;
+  setLikedArtists: (ids: string[]) => void;
+  grantBadge: (usernameOrId: string, badge: Badge) => Promise<boolean>;
+};
+
+const OWNER_EMAIL = 'lunethos.dev@gmail.com';
+const OWNER_PASS = 'red9959.';
+const OWNER_PIN = '4049959';
+
+const STORAGE_KEY = 'pokke.auth.v1';
+
+export const useAuth = create<AuthState>((set, get) => ({
   user: null,
-  profile: null,
-  loading: true,
+  hydrated: false,
 
-  init: async () => {
+  hydrate: async () => {
     try {
-      const { data } = await kokoro.auth.getSession();
-      set({ session: data.session, user: data.session?.user ?? null });
-      if (data.session?.user) {
-        await get().refreshProfile();
-      }
-    } catch (e) {
-      console.warn('Auth init error', e);
-    } finally {
-      set({ loading: false });
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      if (raw) set({ user: JSON.parse(raw), hydrated: true });
+      else set({ hydrated: true });
+    } catch {
+      set({ hydrated: true });
     }
-
-    kokoro.auth.onAuthStateChange(async (_event, session) => {
-      set({ session, user: session?.user ?? null });
-      if (session?.user) await get().refreshProfile();
-      else set({ profile: null });
-    });
   },
 
-  signIn: async (email, password) => {
-    const { error } = await kokoro.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return {};
+  login: async (email, password, pin) => {
+    const e = email.trim().toLowerCase();
+    if (e === OWNER_EMAIL.toLowerCase() && password === OWNER_PASS) {
+      if (pin !== OWNER_PIN) {
+        return { ok: false, error: 'PIN de owner incorrecto' };
+      }
+      const user: Profile = {
+        id: 'owner-1',
+        email: OWNER_EMAIL,
+        username: 'lunethos',
+        displayName: 'Lunethos',
+        badge: 'owner',
+        likedArtists: [],
+        pinRequired: true,
+      };
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+      set({ user });
+      return { ok: true };
+    }
+    // TODO: Kokoro Supabase auth
+    return { ok: false, error: 'Cuenta no encontrada (conecta Kokoro para más usuarios)' };
   },
 
-  signUp: async (email, password, username) => {
-    const { data, error } = await kokoro.auth.signUp({
-      email,
-      password,
-      options: { data: { username } },
-    });
-    if (error) return { error: error.message };
-    // profile row is usually created by trigger; refresh later
-    return {};
+  register: async ({ email, password, username }) => {
+    if (!email || !password || !username) return { ok: false, error: 'Completa todos los campos' };
+    if (email.trim().toLowerCase() === OWNER_EMAIL.toLowerCase()) {
+      return { ok: false, error: 'Ese correo está reservado' };
+    }
+    const user: Profile = {
+      id: `u_${Date.now()}`,
+      email: email.trim(),
+      username: username.trim(),
+      displayName: username.trim(),
+      badge: null,
+      likedArtists: [],
+    };
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    set({ user });
+    return { ok: true };
   },
 
-  signOut: async () => {
-    await kokoro.auth.signOut();
-    set({ session: null, user: null, profile: null });
+  logout: async () => {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+    set({ user: null });
   },
 
-  refreshProfile: async () => {
-    const user = get().user;
-    if (!user) return;
-    const { data } = await kokoro
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .maybeSingle();
-    if (data) set({ profile: data as Profile });
+  setLikedArtists: (ids) => {
+    const u = get().user;
+    if (!u) return;
+    const next = { ...u, likedArtists: ids };
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    set({ user: next });
+  },
+
+  grantBadge: async (usernameOrId, badge) => {
+    const me = get().user;
+    if (!me || (me.badge !== 'owner' && me.badge !== 'admin')) return false;
+    // Real-time would go through Kokoro; local stub for now
+    console.log('[admin] grantBadge', usernameOrId, badge);
+    return true;
   },
 }));
