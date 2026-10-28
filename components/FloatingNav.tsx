@@ -14,6 +14,7 @@ import { GlassView } from './GlassView';
 import { colors, nav, spacing, typography } from '@/theme';
 import { useSettingsStore } from '@/stores/settings';
 import { useScrollStore } from '@/stores/scroll';
+import { NAV_ICON_MAP } from './NavIcons';
 
 type Tab = {
   key: string;
@@ -127,9 +128,9 @@ export function FloatingNav() {
                   accessibilityRole="tab"
                   accessibilityState={{ selected: active }}
                 >
-                  <Text style={[styles.icon, active && styles.iconActive]}>
-                    {tab.icon}
-                  </Text>
+                  <View style={[styles.icon, active && styles.iconActive]}>
+                    {(() => { const I = NAV_ICON_MAP[tab.key as keyof typeof NAV_ICON_MAP]; return I ? <I size={22} color={active ? '#fff' : '#888'} /> : null; })()}
+                  </View>
                   <Text
                     style={[styles.label, active && styles.labelActive]}
                     numberOfLines={1}
