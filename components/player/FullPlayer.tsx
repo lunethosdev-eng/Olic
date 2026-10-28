@@ -10,7 +10,6 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AVPlaybackStatus } from 'expo-av';
 import { GlassView } from '@/components/GlassView';
 import { ProgressBar } from './ProgressBar';
 import { PlayerControls } from './PlayerControls';
@@ -50,7 +49,7 @@ export function FullPlayer() {
   const [downloadSub, setDownloadSub] = useState(false);
 
   const onStatus = useCallback(
-    (status: AVPlaybackStatus) => {
+    (status: any) => {
       if (!status.isLoaded) return;
       const pos = (status.positionMillis ?? 0) / 1000;
       const dur = (status.durationMillis ?? 0) / 1000;
@@ -68,12 +67,12 @@ export function FullPlayer() {
     let cancelled = false;
     (async () => {
       if (!currentTrack) return;
-      await setupAudio();
       try {
+        await setupAudio();
         await loadAndPlay(currentTrack, onStatus);
         if (!cancelled) usePlayerStore.setState({ isPlaying: true });
       } catch (e) {
-        console.warn(e);
+        console.warn('play error', e);
       }
     })();
     return () => {
