@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { IconSettings } from '@/components/NavIcons';
 import Animated from 'react-native-reanimated';
 import { colors, spacing, typography } from '@/theme';
 import { GlassView } from '@/components/GlassView';
@@ -45,9 +46,13 @@ export default function HomeScreen() {
 
   const play = (track: Track) => {
     setQueue(tracks);
-    setTrack(track);
-    openFullPlayer();
-    router.push('/player');
+    try {
+      setTrack(track);
+      openFullPlayer();
+      router.push('/player');
+    } catch (e) {
+      console.warn('play track failed', e);
+    }
   };
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -63,7 +68,12 @@ export default function HomeScreen() {
         scrollEventThrottle={16}
       >
         <Text style={styles.greeting}>Buenas</Text>
-        <Text style={styles.title}>Pokke</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Pokke</Text>
+          <Pressable onPress={() => router.push('/settings')} hitSlop={12} style={styles.settingsBtn}>
+            <IconSettings size={22} color="#fff" />
+          </Pressable>
+        </View>
 
         <GlassView style={styles.card} strong>
           <Text style={styles.cardTitle}>Ahora mismo</Text>
